@@ -22,4 +22,3 @@
        </tr>
        @endforeach
 </table>
-<a href="/orders">Orders</a>
