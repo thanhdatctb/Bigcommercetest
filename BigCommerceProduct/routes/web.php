@@ -11,18 +11,18 @@
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
+Route::get('/', "BigcommerceController@index");
+Route::group(['middleware' => ['web']], function () {
+	Route::group(['prefix'=>'/auth'],function (){
+		Route::get('/install',"BigcommerceController@install");
+		Route::get("/load","BigcommerceController@load")->name("load");
+		Route::get("/uninstall","BigcommerceController@uninstall");
+	});
+    Route::get("/delete/{id}","ProductController@deleteById");
+	Route::get("/edit/{id}","ProductController@prepareForUpdate");
+	Route::post("/edit/{id}","ProductController@updateProduct");
+
 });
-Route::group(['prefix'=>'/auth'],function (){
-  Route::get('/install',"BigcommerceController@install");
-  Route::get("/load","BigcommerceController@load");
-  Route::get("/uninstall","BigcommerceController@uninstall");
 
-
-});
-Route::get("/orders","BigcommerceController@getAllOrder");
-
-//---------------------
 
 

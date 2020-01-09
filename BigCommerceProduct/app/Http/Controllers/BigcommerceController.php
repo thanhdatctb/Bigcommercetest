@@ -32,7 +32,7 @@ class BigcommerceController extends Controller
         }
         return env("BC_App_Client_Secret");
     }
-    public function getAccessToken(Request $request)
+    public  function getAccessToken(Request $request)
     {
         if(env("APP_ENV")=="local")
         {
@@ -69,7 +69,8 @@ class BigcommerceController extends Controller
        {
            //return redirect()->action("BigcommerceController@load");
            //echo("installed. Please reload page");
-           $response = $client->get("https://api.bigcommerce.com/stores/he79zn89dm/v3/catalog/products",["headers"=>[
+          $context = $this->getContext($request);
+           $response = $client->get("https://api.bigcommerce.com/".$context."/v3/catalog/products",["headers"=>[
                "X-Auth-Client"=>$this->getClientId(),
                "X-Auth-Token"=>$data->access_token,
            ]]);
@@ -81,7 +82,7 @@ class BigcommerceController extends Controller
            echo("install fail");
        }
     }
-    private function getData(Request $request)
+    private static function getData(Request $request)
     {
         $signalPayload = $request->input('signed_payload');
         list($encodeData,$encodeSignal)=explode(".",$signalPayload,2);
@@ -92,7 +93,7 @@ class BigcommerceController extends Controller
     }
     private function getContext(Request $request)
     {
-        return $this->getData($request)["context"];
+        return BigcommerceController::getData($request)["context"];
     }
     public function load(Request $request)
     {
@@ -102,19 +103,37 @@ class BigcommerceController extends Controller
 //        $context = $data["context"];
 //        $access_token = DB::table("table_install_infor")->where("context","=",$context)->get("access_token")[0]->access_token;
         //print_r($access_token);
-        $client = new Client();
-
-        $response = $client->get("https://api.bigcommerce.com/stores/he79zn89dm/v3/catalog/products",["headers"=>[
-        "X-Auth-Client"=>$this->getClientId(),
-        "X-Auth-Token"=>$this->getAccessToken($request),
-    ]]);
-        $data = json_decode($response->getBody(),true);
-        return(view("products",["products"=>$data["data"]]));
+        $request->session()->put("clientId",$this->getClientId());
+        $request->session()->put("accessToken",$this->getAccessToken($request));
+        $request->session()->put("context",$this->getContext($request));
+        return redirect("/");
     }
-    public function uninstall(Request $request)
+  public function uninstall(Request $request)
+  {
+    $context = $this->getContext($request);
+    DB::table("table_install_infor")->where("context","=",$context)->delete();
+  }
+  public function index(Request $request)
+  {
+    $context = $request->session()->get("context");
+    $client = new Client();
+    $response = $client->get("https://api.bigcommerce.com/".$context."/v3/catalog/products",["headers"=>[
+      "X-Auth-Client"=>$this->getClientId(),
+      "X-Auth-Token"=>$request->session()->get("accessToken"),
+      ]]);
+    $data = json_decode($response->getBody(),true);
+    $allImages = array();
+    $productController = new ProductController($request);
+    foreach ($data["data"] as $product)
     {
-        $context = $this->getContext($request);
-        DB::table("table_install_infor")->where("context","=",$context)->delete();
+        //echo("<pre>");
+        $images = ($productController->findImageById($product["id"],$request));
+        $allImages[$product["id"]] = $images;
     }
-
+    //print_r($allImages);
+    return(view("products",[
+        "products"=>$data["data"],
+        "allImages"=>$allImages
+    ]));
+  }
 }

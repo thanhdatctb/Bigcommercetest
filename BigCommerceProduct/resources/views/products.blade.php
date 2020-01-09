@@ -4,6 +4,8 @@
         <th>Name</th>
         <th>Description</th>
         <th>Image</th>
+        <th>Delete</th>
+        <th>Edit</th>
     </tr>
    @foreach($products as $product)
        <tr>
@@ -12,13 +14,15 @@
            <td>{!!$product["description"]!!}</td>
            <td>
                <table border="1" cellspacing="0">
-                   @foreach(\App\Http\Controllers\ProductController::findImageById($product["id"]) as $image)
+                   @foreach($allImages[$product["id"]] as $image)
                        <tr>
-                           <td><img src="{{$image->url_tiny}}"></td>
+                           <td><img src="{{$image["url_tiny"]}}"></td>
                        </tr>
                    @endforeach
                </table>
            </td>
+           <td><a href="/delete/{{$product["id"]}}">Delete</a></td>
+           <td><a href="/edit/{{$product["id"]}}">Edit</a> </td>
        </tr>
        @endforeach
 </table>
